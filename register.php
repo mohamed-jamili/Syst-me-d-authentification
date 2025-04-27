@@ -1,47 +1,56 @@
 <?php
 session_start();
-require 'config.php';
+require 'config.php'; 
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (isset($_POST['register'])) {
-        //!✏======drna htmlspecialchars bach n7miw les champs de saisie mn XSS=========
         $name = htmlspecialchars($_POST['name']);
         $email = htmlspecialchars($_POST['email']);
-        //!✏==hna bach nchifriw le mot de passe dyal l'utilisateur=====
-        $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+        $password_plain = $_POST['password'];
         $img = $_FILES['profile_pic'];
-        //!✏===kat9aleb wach email deja utilisé======
-        $checkStmt = $pdo->prepare("SELECT id FROM users WHERE email = :email");
-        $checkStmt->bindParam(':email', $email, PDO::PARAM_STR);
-        $checkStmt->execute();
-        //!✏===ila kan l'email deja utilisé kat3ti error====
-        if ($checkStmt->rowCount() > 0) {
-            $error = "Cet email est déjà utilisé.";
+
+        //email(regex)
+        if (!preg_match("/^[\w\-\.]+@([\w-]+\.)+[\w-]{2,4}$/", $email)) {
+            $error = "Format d'email invalide.";
+        }
+        // verification de password (au moin 8 caractere)
+        elseif (!preg_match("/^.{8,}$/", $password_plain)) {
+            $error = "Le mot de passe doit contenir au moins 8 caractères.";
         } else {
-        //!✏===ila ma kanch l'email deja utilisé kat9aleb 3la l'image wach mnasba====
-            $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        //!✏===ila ma kantch l'image mnasba kat3ti error====
-            if (!in_array($img['type'], $allowed_types)) {
-                $error = "Type de fichier non autorisé.";
+            // verification d'email (est ce que deja etulise)
+            $checkStmt = $pdo->prepare("SELECT id FROM users WHERE email = :email");
+            $checkStmt->bindParam(':email', $email, PDO::PARAM_STR);
+            $checkStmt->execute();
+
+            if ($checkStmt->rowCount() > 0) {
+                $error = "Cet email est déjà utilisé.";
             } else {
-        //
-                $img_name = time() . '_' . basename($img['name']);
-                //!✏===kat7ot l'image f uploads====
-                $target = "uploads/" . $img_name;
-        
-                if (move_uploaded_file($img['tmp_name'], $target)) {
-                  
-                    $stmt = $pdo->prepare("INSERT INTO users (name, email, password, profile_pic) VALUES (:name, :email, :password, :profile_pic)");
-                    $stmt->bindParam(':name', $name, PDO::PARAM_STR);
-                    $stmt->bindParam(':email', $email, PDO::PARAM_STR);
-                    $stmt->bindParam(':password', $password, PDO::PARAM_STR);
-                    $stmt->bindParam(':profile_pic', $img_name, PDO::PARAM_STR);
-                    $stmt->execute();
-                    $_SESSION['user'] = $pdo->lastInsertId();
-                    header("Location: profile.php");
-                    exit;
+                // verifier le type de photo
+                $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                if (!in_array($img['type'], $allowed_types)) {
+                    $error = "Type de fichier non autorisé.";
                 } else {
-                    $error = "Erreur lors du téléchargement du fichier.";
+                    $img_name = time() . '_' . basename($img['name']);
+                    $target = "uploads/" . $img_name;
+
+                    if (move_uploaded_file($img['tmp_name'], $target)) {
+                        // hacher le password
+                        $password = password_hash($password_plain, PASSWORD_DEFAULT);
+
+                        // إدخال البيانات
+                        $stmt = $pdo->prepare("INSERT INTO users (name, email, password, profile_pic) VALUES (:name, :email, :password, :profile_pic)");
+                        $stmt->bindParam(':name', $name, PDO::PARAM_STR);
+                        $stmt->bindParam(':email', $email, PDO::PARAM_STR);
+                        $stmt->bindParam(':password', $password, PDO::PARAM_STR);
+                        $stmt->bindParam(':profile_pic', $img_name, PDO::PARAM_STR);
+                        $stmt->execute();
+
+                        $_SESSION['user'] = $pdo->lastInsertId();
+                        header("Location: profile.php");
+                        exit;
+                    } else {
+                        $error = "Erreur lors du téléchargement du fichier.";
+                    }
                 }
             }
         }
@@ -61,11 +70,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             header("Location: profile.php");
             exit;
         } else {
-            $error = "Email ou mot de passe incorrect";
+            $error = "Email ou mot de passe incorrect.";
         }
     }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -95,7 +105,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       left: 0;
       right: 0;
       z-index: 1000;
-      /* background: transparent; */
       background: rgba(255, 248, 230, 0.8);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
@@ -335,7 +344,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       <h2> Notre Bibliothèque</h2>
     </a>
     <div class="nav-buttons">
-      <!-- <a class="nav-btn" href="register.php">Connexion</a> -->
     </div>
   </nav>
 
@@ -346,11 +354,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   <div class="left">
     <div class="overlay">
     <h1>Bibliothèque</h1>
-    <!-- <p class="font1">Bienvenue dans notre bibliothèque en ligne. <br></p> -->
+
     <p class="font2">📚Les livres ne changent pas le monde, ils changent les lecteurs, et les lecteurs changent le monde🍂</p>
     </div>
-   
-    <!-- <img src="uploads/photo1.jpg" alt="Books" style="width: 100%; border-radius: 15px;"> -->
+
   </div>
   <div class="right">
   <h2 id="form-title">Se connecter à la Bibliothèque</h2>
@@ -414,16 +421,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
   }
 
-  const emojis = ['📚', '📖', '✍️', '📘', '📓', '📔', '💡'];
+  const emojis = ['📚', '📖', '✍', '📘', '📓', '📔', '💡'];
   const container = document.getElementById('bubbles');
 
   for (let i = 0; i < 25; i++) {
     const bubble = document.createElement('div');
     bubble.className = 'bubble';
-    bubble.style.left = `${Math.random() * 100}%`;
-    bubble.style.fontSize = `${20 + Math.random() * 20}px`;
-    bubble.style.animationDuration = `${10 + Math.random() * 20}s`;
-    bubble.style.animationDelay = `${Math.random() * 5}s`;
+    bubble.style.left = ${Math.random() * 100}%;
+    bubble.style.fontSize = ${20 + Math.random() * 20}px;
+    bubble.style.animationDuration = ${10 + Math.random() * 20}s;
+    bubble.style.animationDelay = ${Math.random() * 5}s;
     bubble.textContent = emojis[Math.floor(Math.random() * emojis.length)];
     container.appendChild(bubble);
   }
