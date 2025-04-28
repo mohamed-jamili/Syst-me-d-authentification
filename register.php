@@ -389,19 +389,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <div class="switch" onclick="switchForm('login')">Déjà inscrit ? Se connecter</div>
   </form>
   <div class="social-links">
-    <a href="#" target="_blank">
+    <a href="#">
         <i class="fab fa-facebook-f"></i>
     </a>
-    <a href="#" target="_blank">
+    <a href="#">
         <i class="fab fa-instagram"></i>
     </a>
-    <a href="#" target="_blank">
+    <a href="#">
         <i class="fab fa-twitter"></i>
     </a>
-    <a href="#" target="_blank">
+    <a href="#">
         <i class="fab fa-whatsapp"></i>
     </a>
-    <a href="#" target="_blank">
+    <a href="#">
         <i class="fab fa-youtube"></i>
     </a>
 </div>
